@@ -1,0 +1,13 @@
+# Virtual environment
+venv/
+
+# Stored vectors & data
+storage/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Python cache
+__pycache__/
+*.pyc
