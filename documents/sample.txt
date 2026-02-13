@@ -1,3 +1,0 @@
-This is my first test document for EnteaAI.
-I am building a personal AI knowledge agent.
-

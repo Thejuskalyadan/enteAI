@@ -5,10 +5,11 @@ import faiss
 import numpy as np
 import ollama
 import pickle
+import re
 
 DOCUMENTS_DIR = "documents"
 
-embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+embedding_model = SentenceTransformer("all-MiniLM-L6-v2", device="cpu")
 
 def read_txt(file_path):
     with open(file_path, "r", encoding="utf-8") as file:
@@ -17,9 +18,17 @@ def read_txt(file_path):
 def read_pdf(file_path):
     reader = PdfReader(file_path)
     text = ""
+
     for page in reader.pages:
-        text += page.extract_text() or ""
+        page_text = page.extract_text() or ""
+        page_text = page_text.replace("\n", " ")
+        text += page_text
+
+    print("\n===== PDF EXTRACTED TEXT =====\n")
+    print(text[:2000])   # show first 2000 characters
+
     return text
+
 
 def load_documents():
     texts = []
@@ -33,23 +42,49 @@ def load_documents():
 
     return texts
 
-def split_text(text, chunk_size=500):
-    words = text.split()
-    return [" ".join(words[i:i + chunk_size]) for i in range(0, len(words), chunk_size)]
+def split_text(text, chunk_size=300):
+    sentences = re.split(r'(?<=[.!?]) +', text)
+
+    chunks = []
+    current_chunk = ""
+
+    for sentence in sentences:
+        if len(current_chunk) + len(sentence) < chunk_size:
+            current_chunk += sentence + " "
+        else:
+            chunks.append(current_chunk)
+            current_chunk = sentence + " "
+
+    if current_chunk:
+        chunks.append(current_chunk)
+
+    return chunks
+
 
 def create_embeddings(chunks):
-    return embedding_model.encode(chunks)
+    return embedding_model.encode(chunks, convert_to_numpy=True)
+
 
 def build_vector_store(embeddings):
     dimension = embeddings.shape[1]
-    index = faiss.IndexFlatL2(dimension)
-    index.add(np.array(embeddings))
+
+    index = faiss.IndexFlatIP(dimension)
+
+    faiss.normalize_L2(embeddings)   # ⭐ IMPORTANT
+    index.add(embeddings)
+
     return index
 
-def search(query, index, chunks, top_k=3):
-    query_embedding = embedding_model.encode([query])
-    _, indices = index.search(np.array(query_embedding), top_k)
+
+def search(query, index, chunks, top_k=5):
+    query_embedding = embedding_model.encode([query], convert_to_numpy=True)
+
+    faiss.normalize_L2(query_embedding)   # ⭐ ALSO IMPORTANT
+
+    _, indices = index.search(query_embedding, top_k)
+
     return [chunks[i] for i in indices[0]]
+
 
 def ask_llm(context, question):
     prompt = f"""
@@ -64,9 +99,14 @@ Question:
 {question}
 """
     response = ollama.chat(
-        model="mistral",
-        messages=[{"role": "user", "content": prompt}]
-    )
+    model="phi",
+    messages=[{"role": "user", "content": prompt}],
+    options={
+        "temperature": 0.3,
+        "num_predict": 150
+    }
+)
+
     return response["message"]["content"]
 def save_knowledge(index, chunks):
     faiss.write_index(index, "storage/vector.index")
