@@ -1,4 +1,4 @@
-# EnteAI 🤍  
+# EnteAI 
 Personal AI Knowledge Assistant
 
 EnteAI is a lightweight Retrieval-Augmented Generation (RAG) system that allows users to upload documents and interact with them using an AI-powered interface.
