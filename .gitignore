@@ -1,8 +1,17 @@
 # Virtual environment
 venv/
+env/
+.venv/
 
 # Stored vectors & data
 storage/
+
+# Environment variables
+.env
+
+# Logs
+*.log
+logs/
 
 # OS files
 .DS_Store
@@ -11,3 +20,21 @@ Thumbs.db
 # Python cache
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.Python
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
