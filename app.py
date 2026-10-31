@@ -163,10 +163,12 @@ def split_text(text: str, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVE
         for sentence in sentences:
             # If adding this sentence exceeds chunk size
             if len(current_chunk) + len(sentence) > chunk_size and current_chunk:
-                chunks.append(current_chunk.strip())
-                # Keep overlap from previous chunk
-                words = current_chunk.split()
-                overlap_text = " ".join(words[-overlap:]) if len(words) > overlap else current_chunk
+                previous_chunk = current_chunk.strip()
+                chunks.append(previous_chunk)
+                # Carry the last `overlap` characters forward, starting on a word boundary
+                overlap_text = previous_chunk[-overlap:] if overlap > 0 else ""
+                if len(previous_chunk) > overlap and " " in overlap_text:
+                    overlap_text = overlap_text.split(" ", 1)[1]
                 current_chunk = overlap_text + " " + sentence + " "
             else:
                 current_chunk += sentence + " "
